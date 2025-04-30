@@ -3,10 +3,8 @@ import time
 import pandas as pd
 from bs4 import BeautifulSoup
 
-# Create a scraper that bypasses Cloudflare
 scraper = cloudscraper.create_scraper()
 
-# Define categories and their URLs
 categories = {
     "Motherboard": "https://ddstore.mk/computercomponents/motherboards.html",
     "GPU": "https://ddstore.mk/computercomponents/graphiccards.html",
@@ -20,7 +18,6 @@ categories = {
 
 all_products = []
 
-# Function to scrape a category
 def scrape_category(category, url):
     while url:
         response = scraper.get(url)
@@ -28,7 +25,7 @@ def scrape_category(category, url):
         if response.status_code != 200:
             print(f"Failed to load {category} page, status code: {response.status_code}")
             time.sleep(5)
-            continue  # Retry if blocked
+            continue  
 
         soup = BeautifulSoup(response.text, "html.parser")
         items = soup.select("div.product-item-info")
@@ -52,17 +49,14 @@ def scrape_category(category, url):
             except Exception as e:
                 print(f"Error extracting {category} data: {e}")
 
-        # Find next page button
         next_button = soup.select_one("a.action.next")
-        url = next_button["href"] if next_button else None  # If no next page, stop
+        url = next_button["href"] if next_button else None  
 
-        time.sleep(5)  # Add delay to avoid bot detection
+        time.sleep(5)  
 
-# Scrape both categories
 for category, url in categories.items():
     scrape_category(category, url)
 
-# Save data to CSV
 df = pd.DataFrame(all_products)
 df.to_csv("ddstore_products.csv", index=False, encoding="utf-8")
 print("Scraping complete! Data saved to ddstore_products.csv")

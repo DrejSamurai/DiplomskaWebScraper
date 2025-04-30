@@ -20,22 +20,22 @@ categories = {
 all_products = []
 
 def scrape_category(category, url):
-    base_url = url  # Store base URL for reference
-    visited_urls = set()  # Keep track of visited pages
+    base_url = url  
+    visited_urls = set()  
 
     while url:
         if url in visited_urls:
             print(f"Skipping duplicate page: {url}")
-            break  # Stop looping if revisiting a page
+            break  
 
-        visited_urls.add(url)  # Mark this page as visited
+        visited_urls.add(url)  
 
         response = scraper.get(url)
 
         if response.status_code != 200:
             print(f"Failed to load {category} page, status code: {response.status_code}")
             time.sleep(5)
-            continue  # Retry if blocked
+            continue  
 
         soup = BeautifulSoup(response.text, "html.parser")
 
@@ -65,27 +65,24 @@ def scrape_category(category, url):
             except Exception as e:
                 print(f"Error extracting {category} data: {e}")
 
-        # Find next page button
         next_button = soup.select_one("ul.pagination li a[href*='?page=']")
         next_url = next_button["href"] if next_button else None
 
         if next_url:
-            next_url = urljoin(base_url, next_url)  # Convert to absolute URL
-            if next_url in visited_urls:  # Avoid going in circles
+            next_url = urljoin(base_url, next_url)  
+            if next_url in visited_urls:  
                 print(f"Next page {next_url} was already visited. Stopping pagination.")
                 break
             url = next_url
         else:
             print("No more pages. Stopping pagination.")
-            break  # Stop loop when no next page
+            break  
 
-        time.sleep(5)  # Add delay to avoid bot detection
+        time.sleep(5)  
 
-# Scrape category
 for category, url in categories.items():
     scrape_category(category, url)
 
-# Save data to CSV
 df = pd.DataFrame(all_products)
 df.to_csv("setec.csv", index=False, encoding="utf-8")
 print("Scraping complete! Data saved to setec.csv")
