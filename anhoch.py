@@ -59,6 +59,7 @@ def get_product_details(browser, url):
 
     code = " "
     warranty = " "
+    description = " "
 
     try:
         WebDriverWait(browser, 10).until(
@@ -80,12 +81,18 @@ def get_product_details(browser, url):
             except Exception:
                 continue
 
+        try:
+            desc_elem = browser.find_element(By.ID, "description")
+            description = desc_elem.text.strip()
+        except Exception:
+            description = " "
+
     except Exception as e:
         print(f"Error loading details from {url}: {e}")
 
     browser.close()
     browser.switch_to.window(original_window)
-    return code, warranty
+    return code, warranty, description
 
 browser = webdriver.Firefox()
 wait = WebDriverWait(browser, 20)
@@ -114,7 +121,7 @@ for category, url in categories.items():
             store = "Anhoch"
 
             manufacturer = extract_manufacturer(title)
-            code, warranty = get_product_details(browser, product_link)
+            code, warranty, description = get_product_details(browser, product_link)
 
             print(f"[{category}] Title: {title}")
             print(f"Manufacturer: {manufacturer}")
@@ -122,6 +129,7 @@ for category, url in categories.items():
             print(f"Link: {product_link}")
             print(f"Code: {code}")
             print(f"Warranty: {warranty}")
+            print(f"Item Description:: {description}")
             print(f"Image Link:: {image_url}")
             print("-" * 50)
 
@@ -133,6 +141,7 @@ for category, url in categories.items():
                 "Warranty": warranty,
                 "Link": product_link,
                 "Category": category,
+                "Description": description,
                 "Image": image_url,
                 "Store": store
             })
