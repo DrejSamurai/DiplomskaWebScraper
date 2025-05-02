@@ -7,13 +7,13 @@ import re
 
 categories = {
     "Motherboard": "https://www.anhoch.com/categories/matichni-plochi/products?brand=&attribute=&toPrice=277990&inStockOnly=2&sort=latest&perPage=20&page=1",
-    "GPU": "https://www.anhoch.com/categories/grafichki-karti/products?sort=latest&perPage=20&page=1",
-    "CPU": "https://www.anhoch.com/categories/procesori/products?sort=latest&perPage=20&page=1",
-    "Power Supply": "https://www.anhoch.com/categories/napojuvanja/products?sort=latest&perPage=20&page=1",
-    "Hard Drive": "https://www.anhoch.com/categories/hard-disks/products?sort=latest&perPage=20&page=1",
-    "Case": "https://www.anhoch.com/categories/kukji/products?sort=latest&perPage=20&page=1",
-    "RAM": "https://www.anhoch.com/categories/desktop-ram-memorii/products?brand=&attribute=&toPrice=277990&inStockOnly=2&sort=latest&perPage=20&page=1",
-    "Cooler": "https://www.anhoch.com/categories/ventilatori-i-ladilnici/products?brand=&attribute=&toPrice=277990&inStockOnly=2&sort=latest&perPage=20&page=1"
+    # "GPU": "https://www.anhoch.com/categories/grafichki-karti/products?sort=latest&perPage=20&page=1",
+    # "CPU": "https://www.anhoch.com/categories/procesori/products?sort=latest&perPage=20&page=1",
+    # "Power Supply": "https://www.anhoch.com/categories/napojuvanja/products?sort=latest&perPage=20&page=1",
+    # "Hard Drive": "https://www.anhoch.com/categories/hard-disks/products?sort=latest&perPage=20&page=1",
+    # "Case": "https://www.anhoch.com/categories/kukji/products?sort=latest&perPage=20&page=1",
+    # "RAM": "https://www.anhoch.com/categories/desktop-ram-memorii/products?brand=&attribute=&toPrice=277990&inStockOnly=2&sort=latest&perPage=20&page=1",
+    # "Cooler": "https://www.anhoch.com/categories/ventilatori-i-ladilnici/products?brand=&attribute=&toPrice=277990&inStockOnly=2&sort=latest&perPage=20&page=1"
 }
 
 manufacturers = [
@@ -42,6 +42,14 @@ def extract_manufacturer(title):
 
     return "Unknown"
 
+def standardize_price(price_str):
+    price_str = price_str.replace("ден", "").strip()
+    price_str = price_str.replace(".", "").replace(",", ".")
+    try:
+        return int(float(price_str))
+    except ValueError:
+        return 0
+
 browser = webdriver.Firefox()
 wait = WebDriverWait(browser, 20)
 
@@ -60,7 +68,8 @@ for category, url in categories.items():
 
         for item in items:
             title = item.find_element(By.TAG_NAME, 'h6').text.strip()
-            price = item.find_element(By.CSS_SELECTOR, "div.product-card-bottom .product-price").text.strip()
+            raw_price = item.find_element(By.CSS_SELECTOR, "div.product-card-bottom .product-price").text.strip()
+            price = standardize_price(raw_price)
             link_element = item.find_element(By.TAG_NAME, "a")
             product_link = link_element.get_attribute("href")
             image_element = item.find_element(By.CSS_SELECTOR, "a.product-image img")
