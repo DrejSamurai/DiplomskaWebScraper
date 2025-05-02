@@ -40,7 +40,7 @@ def extract_manufacturer(title):
         if manu in title:
             return manu
 
-    return "Unknown"
+    return " "
 
 def standardize_price(price_str):
     price_str = price_str.replace("ден", "").strip()
@@ -49,6 +49,43 @@ def standardize_price(price_str):
         return int(float(price_str))
     except ValueError:
         return 0
+
+def get_product_details(browser, url):
+    original_window = browser.current_window_handle
+    browser.execute_script("window.open(arguments[0], '_blank');", url)
+    WebDriverWait(browser, 10).until(EC.number_of_windows_to_be(2))
+    new_window = [w for w in browser.window_handles if w != original_window][0]
+    browser.switch_to.window(new_window)
+
+    code = " "
+    warranty = " "
+
+    try:
+        WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, ".additional-info"))
+        )
+        info_items = browser.find_elements(By.CSS_SELECTOR, ".additional-info li")
+
+        for item in info_items:
+            try:
+                label = item.find_element(By.TAG_NAME, "label").text.strip()
+                if "Шифра" in label:
+                    code_text = item.get_attribute("innerText").replace("Шифра:", "").strip()
+                    code = code_text
+                elif "Гаранција" in label:
+                    warranty_text = item.find_element(By.CLASS_NAME, "sku").text.strip()
+                    warranty_match = re.search(r'\d+', warranty_text)
+                    if warranty_match:
+                        warranty = int(warranty_match.group())
+            except Exception:
+                continue
+
+    except Exception as e:
+        print(f"Error loading details from {url}: {e}")
+
+    browser.close()
+    browser.switch_to.window(original_window)
+    return code, warranty
 
 browser = webdriver.Firefox()
 wait = WebDriverWait(browser, 20)
@@ -77,11 +114,14 @@ for category, url in categories.items():
             store = "Anhoch"
 
             manufacturer = extract_manufacturer(title)
+            code, warranty = get_product_details(browser, product_link)
 
             print(f"[{category}] Title: {title}")
             print(f"Manufacturer: {manufacturer}")
             print(f"Price: {price}")
             print(f"Link: {product_link}")
+            print(f"Code: {code}")
+            print(f"Warranty: {warranty}")
             print(f"Image Link:: {image_url}")
             print("-" * 50)
 
@@ -89,6 +129,8 @@ for category, url in categories.items():
                 "Title": title,
                 "Manufacturer": manufacturer,
                 "Price": price,
+                "Code": code,
+                "Warranty": warranty,
                 "Link": product_link,
                 "Category": category,
                 "Image": image_url,
