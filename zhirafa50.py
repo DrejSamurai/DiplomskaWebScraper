@@ -9,16 +9,58 @@ wait = WebDriverWait(browser, 20)
 
 categories = {
     "Motherboard": "https://gjirafa50.mk/matichna-plocha-kompjuterski-delovi",
-    "CPU": "https://gjirafa50.mk/procesor",
-    "GPU": "https://gjirafa50.mk/grafichka-karta-kompjuterski-delovi",
-    "Power Supply": '"https://gjirafa50.mk/izvori-na-napo%D1%98uva%D1%9Ae"',
-    "Hard Drive": "https://gjirafa50.mk/disk",
-    "Case": "https://gjirafa50.mk/ku%D1%9Cishte-kompjuterski-delovi",
-    "RAM": "https://gjirafa50.mk/operativna-memorija-kompjuterski-delovi",
-    "Cooler": "https://gjirafa50.mk/ladilnik-kompjuterski-delovi"
+    # "CPU": "https://gjirafa50.mk/procesor",
+    # "GPU": "https://gjirafa50.mk/grafichka-karta-kompjuterski-delovi",
+    # "Power Supply": '"https://gjirafa50.mk/izvori-na-napo%D1%98uva%D1%9Ae"',
+    # "Hard Drive": "https://gjirafa50.mk/disk",
+    # "Case": "https://gjirafa50.mk/ku%D1%9Cishte-kompjuterski-delovi",
+    # "RAM": "https://gjirafa50.mk/operativna-memorija-kompjuterski-delovi",
+    # "Cooler": "https://gjirafa50.mk/ladilnik-kompjuterski-delovi"
 }
 
 all_products = []
+manufacturers = [
+    "AMD", "Intel", "Gigabyte", "MSI", "ASUS", "ASRock", "EVGA", 
+    "Zotac", "Corsair", "Cooler Master", "NZXT", "Sapphire", "PowerColor",
+    "BE Quiet!", "Geil", "Crucial", "Kingston", "G.Skill", "Thermaltake", "Seasonic"
+    "DeepCool", "Deepcool", "Kingston", "Grizzly", "ASROCK"
+]
+
+def standardize_price(price_str):
+    price_str = price_str.replace("MKD", "").replace("ден", "").replace(".", "").replace(",", "").strip()
+    price_str = ''.join(filter(str.isdigit, price_str))
+    try:
+        return int(price_str)
+    except ValueError:
+        return 0
+
+def standardize_title(title):
+    if title.startswith("Pllakë amë"):
+        return title.replace("Pllakë amë", "", 1).strip()
+    elif title.startswith("Матична плоча"):
+        return title.replace("Матична плоча", "", 1).strip()
+    return title
+
+def extract_manufacturer(title):
+    words = title.split()
+
+    if words[0] in manufacturers:
+        return words[0]
+
+    if words[0] in ["CPU", "GPU", "MB", "PSU", "DIMM"] and len(words) > 1:
+        next_word = words[1]
+        if next_word == "BE" and len(words) > 2 and words[2] == "Quiet!":
+            return "BE Quiet!"
+        if next_word in manufacturers:
+            return next_word
+
+    for manu in manufacturers:
+        if manu in title:
+            return manu
+
+    return " "
+
+
 seen_product_links = set()  
 
 def scrape_category(category, url):
@@ -32,20 +74,28 @@ def scrape_category(category, url):
 
         for item in items:
             try:
-                title = item.find_element(By.CSS_SELECTOR, "h3.product-title a").text.strip()
+                raw_title = item.find_element(By.CSS_SELECTOR, "h3.product-title a").text.strip()
+                title = standardize_title(raw_title)
                 product_link = item.find_element(By.CSS_SELECTOR, "h3.product-title a").get_attribute('href')
 
                 if product_link not in seen_product_links:
-                    price = item.find_element(By.CSS_SELECTOR, "span.price").text.strip()
-                    img_src = item.find_element(By.CSS_SELECTOR, "section.picture img").get_attribute('data-src')
+                    raw_price = item.find_element(By.CSS_SELECTOR, "span.price").text.strip()
+                    price = standardize_price(raw_price)
+                    manufacturer = extract_manufacturer(title)
+                    img_element = item.find_element(By.CSS_SELECTOR, "section.picture img")
+                    img_src = img_element.get_attribute('data-src') or img_element.get_attribute('src')
 
                     all_products.append({
-                        "Title": title,
-                        "Price": price,
-                        "Link": product_link,
-                        "Image": img_src,
-                        "Category": category,
-                        "Store": "Gjirafa50"
+                    "Title": title,
+                    "Manufacturer": manufacturer,
+                    "Price": price,
+                    "Code": " ",
+                    "Warranty": " ",
+                    "Link": product_link,
+                    "Category": category,
+                    "Description": " ",
+                    "Image": img_src,
+                    "Store": "Zhirafa50"
                     })
 
                     seen_product_links.add(product_link)  

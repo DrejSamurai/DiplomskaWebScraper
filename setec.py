@@ -8,16 +8,51 @@ scraper = cloudscraper.create_scraper()
 
 categories = {
     "Motherboard": "https://setec.mk/computers--it/pc-and-pc-equipment/motherboard",
-    "CPU": "https://setec.mk/computers--it/pc-and-pc-equipment/processor",
-    "GPU": "https://setec.mk/computers--it/pc-and-pc-equipment/graphic-cards",
-    "Power Supply": "https://setec.mk/computers--it/pc-and-pc-equipment/power-supply",
-    "Hard Drive": "https://setec.mk/computers--it/pc-and-pc-equipment/hard-disks",
-    "Case": "https://setec.mk/computers--it/pc-and-pc-equipment/case",
-    "RAM": "https://setec.mk/computers--it/pc-and-pc-equipment/ram-memory",
-    "Cooler": "https://setec.mk/computers--it/pc-and-pc-equipment/coolers"
+    # "CPU": "https://setec.mk/computers--it/pc-and-pc-equipment/processor",
+    # "GPU": "https://setec.mk/computers--it/pc-and-pc-equipment/graphic-cards",
+    # "Power Supply": "https://setec.mk/computers--it/pc-and-pc-equipment/power-supply",
+    # "Hard Drive": "https://setec.mk/computers--it/pc-and-pc-equipment/hard-disks",
+    # "Case": "https://setec.mk/computers--it/pc-and-pc-equipment/case",
+    # "RAM": "https://setec.mk/computers--it/pc-and-pc-equipment/ram-memory",
+    # "Cooler": "https://setec.mk/computers--it/pc-and-pc-equipment/coolers"
 }
 
 all_products = []
+manufacturers = [
+    "AMD", "Intel", "Gigabyte", "MSI", "ASUS", "ASRock", "EVGA", 
+    "Zotac", "Corsair", "Cooler Master", "NZXT", "Sapphire", "PowerColor",
+    "BE Quiet!", "Geil", "Crucial", "Kingston", "G.Skill", "Thermaltake", "Seasonic"
+    "DeepCool", "Deepcool", "Kingston", "Grizzly", "ASROCK"
+]
+
+def standardize_price(price_str):
+    price_str = price_str.replace("ден", "").strip()
+    price_str = price_str.replace(".", "").replace(",", ".")
+    try:
+        return int(float(price_str))
+    except ValueError:
+        return 0
+
+
+def extract_manufacturer(title):
+    words = title.split()
+
+    if words[0] in manufacturers:
+        return words[0]
+
+    if words[0] in ["CPU", "GPU", "MB", "PSU", "DIMM"] and len(words) > 1:
+        next_word = words[1]
+        if next_word == "BE" and len(words) > 2 and words[2] == "Quiet!":
+            return "BE Quiet!"
+        if next_word in manufacturers:
+            return next_word
+
+    for manu in manufacturers:
+        if manu in title:
+            return manu
+
+    return " "
+    
 
 def scrape_category(category, url):
     base_url = url  
@@ -45,21 +80,24 @@ def scrape_category(category, url):
         for item in items:
             try:
                 title_element = item.select_one("div.name a")
-                title = title_element.text.strip() if title_element else "No Title"
-                product_link = urljoin(base_url, title_element["href"]) if title_element else "No Link"
+                title = title_element.text.strip() if title_element else " "
+                product_link = urljoin(base_url, title_element["href"]) if title_element else " "
                 
                 price_element = item.select_one("span.price-new-new")
-                price = price_element.text.strip() if price_element else "No Price"
-                
-                old_price_element = item.select_one("span.price-old-new")
-                old_price = old_price_element.text.strip() if old_price_element else "No Old Price"
-                
+                raw_price = price_element.text.strip() if price_element else " "
+                price = standardize_price(raw_price)
+                manufacturer = extract_manufacturer(title)
+
                 all_products.append({
                     "Title": title,
+                    "Manufacturer": manufacturer,
                     "Price": price,
-                    "Old Price": old_price,
+                    "Code": " ",
+                    "Warranty": " ",
                     "Link": product_link,
                     "Category": category,
+                    "Description": " ",
+                    "Image": " ",
                     "Store": "Setec"
                 })
             except Exception as e:
