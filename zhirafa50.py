@@ -3,19 +3,20 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 import pandas as pd
+import re
 
 browser = webdriver.Firefox()  
 wait = WebDriverWait(browser, 20)
 
 categories = {
+    "Power Supply": "https://gjirafa50.mk/izvori-na-napoјuvaњe",
+    "Case": "https://gjirafa50.mk/kuќishte-kompjuterski-delovi",
     "Motherboard": "https://gjirafa50.mk/matichna-plocha-kompjuterski-delovi",
-    # "CPU": "https://gjirafa50.mk/procesor",
-    # "GPU": "https://gjirafa50.mk/grafichka-karta-kompjuterski-delovi",
-    # "Power Supply": '"https://gjirafa50.mk/izvori-na-napo%D1%98uva%D1%9Ae"',
-    # "Hard Drive": "https://gjirafa50.mk/disk",
-    # "Case": "https://gjirafa50.mk/ku%D1%9Cishte-kompjuterski-delovi",
-    # "RAM": "https://gjirafa50.mk/operativna-memorija-kompjuterski-delovi",
-    # "Cooler": "https://gjirafa50.mk/ladilnik-kompjuterski-delovi"
+    "CPU": "https://gjirafa50.mk/procesor",
+    "GPU": "https://gjirafa50.mk/grafichka-karta-kompjuterski-delovi",
+    "Hard Drive": "https://gjirafa50.mk/disk",
+    "RAM": "https://gjirafa50.mk/operativna-memorija-kompjuterski-delovi",
+    "Cooler": "https://gjirafa50.mk/ladilnik-kompjuterski-delovi"
 }
 
 all_products = []
@@ -40,6 +41,57 @@ def standardize_title(title):
     elif title.startswith("Матична плоча"):
         return title.replace("Матична плоча", "", 1).strip()
     return title
+
+def normalize_warranty(warranty_text: str) -> int:
+    match = re.search(r'\d+', warranty_text)
+    return int(match.group()) if match else 0
+
+def get_product_details(browser, url):
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+
+    original_window = browser.current_window_handle
+    browser.execute_script("window.open(arguments[0], '_blank');", url)
+    WebDriverWait(browser, 10).until(EC.number_of_windows_to_be(2))
+    new_window = [w for w in browser.window_handles if w != original_window][0]
+    browser.switch_to.window(new_window)
+
+    code = " "
+    warranty = " "
+    description = " "
+
+    try:
+        WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".product-essential")))
+
+        try:
+            code_input = browser.find_element(By.ID, "product-code-copy")
+            code = code_input.get_attribute("value").strip()
+        except Exception as e:
+            print("Code not found:", e)
+
+        try:
+            warranty_container = browser.find_element(
+                By.XPATH,
+                "//span[contains(., 'Гаранција:') and contains(@class, 'flex')]"
+            )
+            all_spans = warranty_container.find_elements(By.TAG_NAME, "span")
+            if len(all_spans) >= 2:
+                warranty = normalize_warranty(all_spans[1].text.strip())
+        except Exception as e:
+            print("Warranty not found:", e)
+
+        try:
+            desc_elem = browser.find_element(By.CSS_SELECTOR, ".full-description")
+            description = desc_elem.text.strip()
+        except Exception as e:
+            print("Description not found:", e)
+
+    finally:
+        browser.close()
+        browser.switch_to.window(original_window)
+
+    return code, warranty, description
 
 def extract_manufacturer(title):
     words = title.split()
@@ -84,21 +136,22 @@ def scrape_category(category, url):
                     manufacturer = extract_manufacturer(title)
                     img_element = item.find_element(By.CSS_SELECTOR, "section.picture img")
                     img_src = img_element.get_attribute('data-src') or img_element.get_attribute('src')
+                    code, warranty, description = get_product_details(browser, product_link)
 
                     all_products.append({
                     "Title": title,
                     "Manufacturer": manufacturer,
                     "Price": price,
-                    "Code": " ",
-                    "Warranty": " ",
+                    "Code": code,
+                    "Warranty": warranty,
                     "Link": product_link,
                     "Category": category,
-                    "Description": " ",
+                    "Description": description,
                     "Image": img_src,
                     "Store": "Zhirafa50"
                     })
 
-                    seen_product_links.add(product_link)  
+                    seen_product_links.add(product_link)
                 else:
                     print(f"Duplicate product found: {product_link}. Skipping.")
             except Exception as e:

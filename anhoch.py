@@ -4,6 +4,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 import re
+import numpy as np
+import math
 
 categories = {
     "Motherboard": "https://www.anhoch.com/categories/matichni-plochi/products?brand=&attribute=&toPrice=277990&inStockOnly=2&sort=latest&perPage=20&page=1",
@@ -77,7 +79,7 @@ def get_product_details(browser, url):
                     warranty_text = item.find_element(By.CLASS_NAME, "sku").text.strip()
                     warranty_match = re.search(r'\d+', warranty_text)
                     if warranty_match:
-                        warranty = int(warranty_match.group())
+                        warranty = int(warranty_match.group())//12
             except Exception:
                 continue
 
@@ -96,7 +98,6 @@ def get_product_details(browser, url):
 
 browser = webdriver.Firefox()
 wait = WebDriverWait(browser, 20)
-
 all_products = []
 
 for category, url in categories.items():
@@ -132,8 +133,7 @@ for category, url in categories.items():
                 "Description": description,
                 "Image": image_url,
                 "Store": store
-            })
-
+            })       
         try:
             next_button = browser.find_element(By.CSS_SELECTOR, ".pagination li:last-child button.page-link i.las.la-angle-right")
             browser.execute_script("arguments[0].click();", next_button)  

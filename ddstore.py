@@ -8,17 +8,14 @@ scraper = cloudscraper.create_scraper()
 
 categories = {
     "Motherboard": "https://ddstore.mk/computercomponents/motherboards.html",
-    # "GPU": "https://ddstore.mk/computercomponents/graphiccards.html",
-    # "CPU": "https://ddstore.mk/computercomponents/processors.html",
-    # "Power Supply": "https://ddstore.mk/computercomponents/powersupplies.html",
-    # "Hard Drive": "https://ddstore.mk/computercomponents/storagedevices/internalharddrives.html",
-    # "Case": "https://ddstore.mk/computercomponents/pccases.html",
-    # "RAM": "https://ddstore.mk/computercomponents/rammemory.html",
-    # "Cooler": "https://ddstore.mk/computercomponents/pcfanscoolers.html"
+     "GPU": "https://ddstore.mk/computercomponents/graphiccards.html",
+     "CPU": "https://ddstore.mk/computercomponents/processors.html",
+     "Power Supply": "https://ddstore.mk/computercomponents/powersupplies.html",
+     "Hard Drive": "https://ddstore.mk/computercomponents/storagedevices/internalharddrives.html",
+     "Case": "https://ddstore.mk/computercomponents/pccases.html",
+     "RAM": "https://ddstore.mk/computercomponents/rammemory.html",
+     "Cooler": "https://ddstore.mk/computercomponents/pcfanscoolers.html"
 }
-
-#To Do Scrape code warranty and description
-#Standardize manufacturers
 
 all_products = []
 manufacturers = [
