@@ -8,13 +8,13 @@ scraper = cloudscraper.create_scraper()
 
 categories = {
     "Motherboard": "https://setec.mk/computers--it/pc-and-pc-equipment/motherboard",
-    # "CPU": "https://setec.mk/computers--it/pc-and-pc-equipment/processor",
-    # "GPU": "https://setec.mk/computers--it/pc-and-pc-equipment/graphic-cards",
-    # "Power Supply": "https://setec.mk/computers--it/pc-and-pc-equipment/power-supply",
-    # "Hard Drive": "https://setec.mk/computers--it/pc-and-pc-equipment/hard-disks",
-    # "Case": "https://setec.mk/computers--it/pc-and-pc-equipment/case",
-    # "RAM": "https://setec.mk/computers--it/pc-and-pc-equipment/ram-memory",
-    # "Cooler": "https://setec.mk/computers--it/pc-and-pc-equipment/coolers"
+     "CPU": "https://setec.mk/computers--it/pc-and-pc-equipment/processor",
+     "GPU": "https://setec.mk/computers--it/pc-and-pc-equipment/graphic-cards",
+     "Power Supply": "https://setec.mk/computers--it/pc-and-pc-equipment/power-supply",
+     "Hard Drive": "https://setec.mk/computers--it/pc-and-pc-equipment/hard-disks",
+     "Case": "https://setec.mk/computers--it/pc-and-pc-equipment/case",
+     "RAM": "https://setec.mk/computers--it/pc-and-pc-equipment/ram-memory",
+     "Cooler": "https://setec.mk/computers--it/pc-and-pc-equipment/coolers"
 }
 
 all_products = []
@@ -32,6 +32,32 @@ def standardize_price(price_str):
         return int(float(price_str))
     except ValueError:
         return 0
+
+def get_product_details(url):
+    try:
+        response = scraper.get(url)
+        if response.status_code != 200:
+            print(f"Failed to fetch product detail page: {url}")
+            return " ", " ", " "
+
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        code_elem = soup.select_one(".product-info-sku span")
+        code = code_elem.text.strip().replace("КОД: ", "") if code_elem else " "
+
+        warranty_elem = soup.select_one(".product-info-warranty span")
+        warranty_text = warranty_elem.text.strip() if warranty_elem else ""
+        warranty_match = re.search(r'\d+', warranty_text)
+        warranty = int(warranty_match.group()) if warranty_match else " "
+
+        desc_elem = soup.find(id="description")
+        description = desc_elem.get_text(strip=True) if desc_elem else " "
+
+        return code, warranty, description
+
+    except Exception as e:
+        print(f"Error scraping product details from {url}: {e}")
+        return " ", " ", " "
 
 
 def extract_manufacturer(title):
@@ -88,15 +114,16 @@ def scrape_category(category, url):
                 price = standardize_price(raw_price)
                 manufacturer = extract_manufacturer(title)
 
+                code, warranty, description = get_product_details(product_link)
                 all_products.append({
                     "Title": title,
                     "Manufacturer": manufacturer,
                     "Price": price,
-                    "Code": " ",
-                    "Warranty": " ",
+                    "Code": code,
+                    "Warranty": warranty,
                     "Link": product_link,
                     "Category": category,
-                    "Description": " ",
+                    "Description": description,
                     "Image": " ",
                     "Store": "Setec"
                 })
